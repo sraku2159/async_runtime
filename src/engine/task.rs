@@ -7,6 +7,14 @@ pub const SCHEDULED: u8 = 1;
 pub const RUNNING: u8 = 2;
 pub const COMPLETED: u8 = 3;
 
+pub trait TaskTrait: Future<Output = ()> {
+    fn set_state(&mut self, val: u8);
+    fn get_state(&self) -> u8;
+    fn is_scheduled(&self) -> bool {
+        self.get_state() == SCHEDULED
+    }
+}
+
 pub struct Task<T> {
     inner: Pin<Box<dyn Future<Output = ()>>>,
     state: AtomicU8,
@@ -34,15 +42,28 @@ where
             phantom: PhantomData,
         }
     }
+}
 
-    pub fn is_scheduled(&self) -> bool {
+impl<T> TaskTrait for Task<T>
+where
+    T: Unpin + 'static,
+{
+    fn set_state(&mut self, val: u8) {
+        self.state.store(val, Ordering::Release);
+    }
+
+    fn get_state(&self) -> u8 {
+        self.state.load(Ordering::Acquire)
+    }
+
+    fn is_scheduled(&self) -> bool {
         self.state.load(Ordering::Acquire) == SCHEDULED
     }
 }
 
 impl<T> Future for Task<T>
 where
-    T: Unpin,
+    T: Unpin + 'static,
 {
     type Output = ();
 
