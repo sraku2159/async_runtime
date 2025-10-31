@@ -19,7 +19,11 @@ impl<T> Task<T>
 where
     T: Unpin + 'static,
 {
-    pub fn new(inner: Pin<Box<dyn Future<Output = T>>>) -> Self {
+    pub fn new<U>(inner: U) -> Self
+    where
+        U: Future + 'static,
+    {
+        let inner = Box::pin(inner);
         let task = async move {
             let _res = inner.await;
             // sender.send(res);

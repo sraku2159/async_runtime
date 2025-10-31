@@ -1,3 +1,5 @@
+use crate::engine::task::Task;
+
 use super::Scheduler;
 
 use std::collections::VecDeque;
@@ -16,7 +18,11 @@ impl Fifo {
 }
 
 impl Scheduler for Fifo {
-    fn schedule(&mut self, task: Pin<Box<dyn Future<Output = ()>>>) {
+    fn schedule<T>(&mut self, task: Pin<Box<dyn Future<Output = T>>>)
+    where
+        T: Unpin + 'static,
+    {
+        let task = Box::pin(Task::<T>::new(task));
         self.queue.push_back(task);
     }
 
