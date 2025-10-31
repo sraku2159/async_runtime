@@ -2,10 +2,10 @@ use std::marker::PhantomData;
 use std::sync::atomic::Ordering;
 use std::{pin::Pin, sync::atomic::AtomicU8, task::Poll};
 
-const IDLE: u8 = 0;
-const SCHEDULED: u8 = 1;
-const RUNNING: u8 = 2;
-const COMPLETED: u8 = 3;
+pub const IDLE: u8 = 0;
+pub const SCHEDULED: u8 = 1;
+pub const RUNNING: u8 = 2;
+pub const COMPLETED: u8 = 3;
 
 pub struct Task<T> {
     inner: Pin<Box<dyn Future<Output = ()>>>,
