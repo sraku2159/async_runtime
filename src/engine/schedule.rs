@@ -1,11 +1,11 @@
 pub mod fifo;
 
-use std::future::Future;
 use std::pin::Pin;
 
+use crate::engine::task::TaskTrait;
+
 pub trait Scheduler {
-    fn schedule<T>(&mut self, task: Pin<Box<dyn Future<Output = T>>>)
-    where
-        T: Unpin + 'static;
-    fn take(&mut self) -> Option<Pin<Box<dyn Future<Output = ()>>>>;
+    // アルゴリズムは自由だが、task.set_state(Task::SCHEDULED)は呼ばないといけない
+    fn schedule(&mut self, task: Pin<Box<dyn TaskTrait>>);
+    fn take(&mut self) -> Option<Pin<Box<dyn TaskTrait>>>;
 }

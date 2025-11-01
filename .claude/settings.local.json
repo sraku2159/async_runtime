@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.rs)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:rust-lang.github.io)"
     ]
   },
   "enableAllProjectMcpServers": true,

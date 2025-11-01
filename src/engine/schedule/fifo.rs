@@ -1,4 +1,4 @@
-use crate::engine::task::Task;
+use crate::engine::task::{self, TaskTrait};
 
 use super::Scheduler;
 
@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::pin::Pin;
 
 pub struct Fifo {
-    queue: VecDeque<Pin<Box<dyn Future<Output = ()> + 'static>>>,
+    queue: VecDeque<Pin<Box<dyn TaskTrait<Output = ()> + 'static>>>,
 }
 
 impl Fifo {
@@ -18,15 +18,12 @@ impl Fifo {
 }
 
 impl Scheduler for Fifo {
-    fn schedule<T>(&mut self, task: Pin<Box<dyn Future<Output = T>>>)
-    where
-        T: Unpin + 'static,
-    {
-        let task = Box::pin(Task::<T>::new(task));
+    fn schedule(&mut self, mut task: Pin<Box<dyn TaskTrait>>) {
+        task.as_mut().set_state(task::SCHEDULED);
         self.queue.push_back(task);
     }
 
-    fn take(&mut self) -> Option<Pin<Box<dyn Future<Output = ()>>>> {
+    fn take(&mut self) -> Option<Pin<Box<dyn TaskTrait>>> {
         self.queue.pop_front()
     }
 }

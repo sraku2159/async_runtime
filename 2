@@ -1,0 +1,80 @@
+pub use std::future::Future;
+pub use std::pin::Pin;
+use std::sync::Arc;
+pub use std::task::{Context, Poll};
+
+pub use std::sync::mpsc;
+
+pub struct Channel<T>(Receiver<T>, Sender<T>);
+
+impl<T> Channel<T> {
+    pub fn new() -> Self {
+        Self(Receiver::new(), Sender::<T>::new())
+    }
+}
+
+pub struct Sender<T> {
+    sender: mpsc::Sender<T>,
+}
+
+impl<T> Sender<T> {
+    pub fn new() -> Self {
+        Self {
+            sender: mpsc::Sender::new(),
+        }
+    }
+
+    pub fn send(val: T) {}
+}
+
+pub struct Receiver<T> {
+    receiver: Receiver<T>,
+    state: ReceiverInnerState<T>,
+}
+
+// let receiver = Arc::pin(Receiver::new());
+// とかってなりそう？？？
+impl<T> Receiver<T> {
+    pub fn new() -> Self {
+        Self {
+            receiver: Receiver::new(),
+            state: ReceiverInnerState::new(),
+        }
+    }
+
+    pub fn arc() -> Arc<Self> {
+        Arc::new(Self {
+            receiver: Receiver::new(),
+            state: ReceiverInnerState::new(),
+        })
+    }
+
+    pub fn set_state(&mut self, state: T) -> () {
+        self.state.set(state)
+    }
+}
+
+impl<T> Future for Receiver<T> {
+    type Output = T;
+
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.state.get()
+    }
+}
+
+struct ReceiverInnerState<T>(std::sync::Mutex<Poll<T>>);
+
+impl<T> ReceiverInnerState<T> {
+    pub fn new() -> Self {
+        Self(Poll::Pending)
+    }
+
+    // lockがPoisonErrorを返すときはロックを持ったまま、OSスレッドが死んだときのみ？
+    pub fn get(&self) -> Poll<T> {
+        self.0.lock().unwrap()
+    }
+
+    pub fn set(&mut self, val: T) {
+        *(self.0.lock().unwrap()) = val;
+    }
+}
