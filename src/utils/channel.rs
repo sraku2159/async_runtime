@@ -7,7 +7,7 @@ pub use std::task::{Context, Poll};
 
 pub use std::sync::mpsc;
 
-pub type Channel<T: Clone> = (Sender<T>, Receiver<T>);
+pub type Channel<T> = (Sender<T>, Receiver<T>);
 pub fn channel<T>() -> Channel<T>
 where
     T: Clone,
@@ -32,7 +32,7 @@ impl<T> Sender<T>
 where
     T: Clone,
 {
-    pub fn new(sender: mpsc::Sender<T>, context: SharedInnerContext) -> Self {
+    fn new(sender: mpsc::Sender<T>, context: SharedInnerContext) -> Self {
         Self {
             sender: sender,
             context: context,
@@ -40,7 +40,7 @@ where
     }
 
     pub fn send(self, val: T) {
-        self.sender.send(val.clone());
+        let _ = self.sender.send(val.clone());
         let mut context = self.context.lock().unwrap();
         context.set_state(InnerState::Ready);
         if let Some(waker) = context.waker.take() {
@@ -61,7 +61,7 @@ impl<T> Receiver<T>
 where
     T: Clone,
 {
-    pub fn new(receiver: mpsc::Receiver<T>, shared_context: SharedInnerContext) -> Self {
+    fn new(receiver: mpsc::Receiver<T>, shared_context: SharedInnerContext) -> Self {
         Self {
             receiver: receiver,
             context: shared_context,
@@ -94,7 +94,7 @@ where
     }
 }
 
-pub type SharedInnerContext = Arc<Mutex<InnerContext>>;
+type SharedInnerContext = Arc<Mutex<InnerContext>>;
 
 struct InnerContext {
     state: InnerState,
@@ -109,10 +109,6 @@ impl InnerContext {
             state: InnerState::Pending,
             waker: None,
         }
-    }
-
-    fn set_waker(&mut self, waker: Waker) {
-        self.waker = Some(waker);
     }
 
     fn set_state(&mut self, state: InnerState) {

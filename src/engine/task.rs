@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use std::sync::atomic::Ordering;
 use std::{pin::Pin, sync::atomic::AtomicU8, task::Poll};
 
