@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::task::Wake;
 
 use crate::engine::schedule::Scheduler;
-use crate::engine::task::TaskTrait;
+use crate::engine::task::{self, TaskTrait};
 
 pub struct Waker<T>
 where
@@ -31,9 +31,12 @@ where
 {
     fn wake(self: Arc<Self>) {
         if let Some(task) = self.task.lock().unwrap().take()
-            && !task.as_ref().is_scheduled()
+            && task.as_ref().get_state() == task::PENDING
         {
             self.scheduler.lock().unwrap().schedule(task);
         }
     }
 }
+
+#[cfg(test)]
+mod test;

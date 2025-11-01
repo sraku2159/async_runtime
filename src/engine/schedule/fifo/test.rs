@@ -21,7 +21,7 @@ impl Future for DummyTask {
 }
 
 #[test]
-fn test_take_task() {
+fn take_task_one_by_one() {
     let (sender, _) = channel();
     let task1: Pin<Box<dyn TaskTrait>> = Box::pin(Task::new(DummyTask {}, sender));
     let (sender, _) = channel();

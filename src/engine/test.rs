@@ -4,7 +4,7 @@ use std::future::Future;
 use std::task::Poll;
 
 #[test]
-fn test_block_on() {
+fn block_on_normally() {
     struct DummyFuture {
         i: i32,
     }
