@@ -29,12 +29,18 @@ fn test_take_task() {
 
     let mut scheduler = Fifo::new();
 
-    let task_ptr = task1.as_ref().get_ref() as *const _ as *const ();
+    let task1_ptr = task1.as_ref().get_ref() as *const _ as *const ();
+    let task2_ptr = task2.as_ref().get_ref() as *const _ as *const ();
 
     scheduler.schedule(task1);
     scheduler.schedule(task2);
     let retrieved_task = scheduler.take().expect("Task should be present");
 
     let retrieved_ptr = retrieved_task.as_ref().get_ref() as *const _ as *const ();
-    assert_eq!(task_ptr, retrieved_ptr, "Pointers should match");
+    assert_eq!(task1_ptr, retrieved_ptr, "Pointers should match");
+
+    let retrieved_task = scheduler.take().expect("Task should be present");
+
+    let retrieved_ptr = retrieved_task.as_ref().get_ref() as *const _ as *const ();
+    assert_eq!(task2_ptr, retrieved_ptr, "Pointers should match");
 }
