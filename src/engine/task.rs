@@ -3,7 +3,7 @@ use std::{pin::Pin, sync::atomic::AtomicU8, task::Poll};
 
 use crate::utils::channel::Sender;
 
-pub const IDLE: u8 = 0;
+pub const PENDING: u8 = 0;
 pub const SCHEDULED: u8 = 1;
 pub const RUNNING: u8 = 2;
 pub const COMPLETED: u8 = 3;
@@ -19,7 +19,6 @@ pub trait TaskTrait: Future<Output = ()> {
 pub struct Task {
     inner: Pin<Box<dyn Future<Output = ()>>>,
     state: AtomicU8,
-    // TODO: これはsenderの実装がおわるまでエラーを消すため
 }
 
 impl Task {
@@ -32,11 +31,10 @@ impl Task {
         let task = async move {
             let res = inner.await;
             sender.send(res);
-            //ここでreceiverのFutureをwakeする必要がある。
         };
         Self {
             inner: Box::pin(task),
-            state: AtomicU8::new(IDLE),
+            state: AtomicU8::new(PENDING),
         }
     }
 }
@@ -58,11 +56,10 @@ impl Future for Task {
         let pinned = self.get_mut();
         match pinned.inner.as_mut().poll(cx) {
             Poll::Pending => {
-                pinned.state.store(IDLE, Ordering::Release);
+                pinned.state.store(PENDING, Ordering::Release);
                 Poll::Pending
             }
             Poll::Ready(v) => {
-                // self.sender(v);
                 pinned.state.store(COMPLETED, Ordering::Release);
                 Poll::Ready(v)
             }

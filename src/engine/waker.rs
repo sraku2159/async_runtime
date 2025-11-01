@@ -30,7 +30,9 @@ where
     T: Scheduler,
 {
     fn wake(self: Arc<Self>) {
-        if let Some(task) = self.task.lock().unwrap().take() {
+        if let Some(task) = self.task.lock().unwrap().take()
+            && !task.as_ref().is_scheduled()
+        {
             self.scheduler.lock().unwrap().schedule(task);
         }
     }
