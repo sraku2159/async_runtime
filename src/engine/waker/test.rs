@@ -6,68 +6,64 @@ use std::{
 
 use crate::engine::{
     schedule::Scheduler,
-    task::{self, TaskTrait},
+    task::{self, SharedTask, Task},
     waker::Waker,
 };
 
-struct DummyTask {
-    state: u8,
-}
+struct DummyFuture {}
 
-impl DummyTask {
-    fn new(state: u8) -> Self {
-        Self { state }
-    }
-}
-
-impl TaskTrait for DummyTask {
-    fn set_state(mut self: std::pin::Pin<&mut Self>, val: u8) {
-        self.state = val;
-    }
-
-    fn get_state(self: std::pin::Pin<&Self>) -> u8 {
-        self.state
-    }
-}
-
-impl Future for DummyTask {
-    type Output = ();
+impl Future for DummyFuture {
+    type Output = i32;
     fn poll(
         self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
-        Poll::Ready(())
+        Poll::Ready(42)
     }
 }
 
 struct DummyScheduler {
     scheduled_count: usize,
-    tasks: Vec<std::pin::Pin<Box<dyn TaskTrait>>>,
+    tasks: Vec<SharedTask>,
+    worker_receiver: std::sync::mpsc::Receiver<crate::engine::worker::WorkerInfo>,
+    pending_workers: std::collections::VecDeque<crate::engine::worker::WorkerInfo>,
 }
-
 impl DummyScheduler {
     fn new() -> Self {
+        let (_, worker_receiver) = std::sync::mpsc::channel();
         Self {
             scheduled_count: 0,
             tasks: Vec::new(),
+            worker_receiver,
+            pending_workers: std::collections::VecDeque::new(),
         }
     }
 }
 
 impl Scheduler for DummyScheduler {
-    fn schedule(&mut self, task: std::pin::Pin<Box<dyn TaskTrait>>) {
+    fn register(&mut self, task: SharedTask) {
         self.scheduled_count += 1;
         self.tasks.push(task);
     }
 
-    fn take(&mut self) -> Option<std::pin::Pin<Box<dyn TaskTrait>>> {
+    fn take(&mut self) -> Option<SharedTask> {
         self.tasks.pop()
+    }
+
+    fn get_pending_workers(&mut self) -> &mut std::collections::VecDeque<crate::engine::worker::WorkerInfo> {
+        &mut self.pending_workers
+    }
+
+    fn get_worker_receiver(&mut self) -> &mut std::sync::mpsc::Receiver<crate::engine::worker::WorkerInfo> {
+        &mut self.worker_receiver
     }
 }
 
 fn test_waker_schedule_count(task_state: u8, expected_count: usize) {
     let scheduler = Arc::new(Mutex::new(DummyScheduler::new()));
-    let task = Box::pin(DummyTask::new(task_state));
+    let (sender, _) = crate::utils::channel::channel();
+    let task = Task::new(DummyFuture {}, sender);
+    task.set_state(task_state);
     let waker = Arc::new(Waker::new(scheduler.clone(), task));
 
     waker.wake();

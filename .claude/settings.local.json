@@ -4,7 +4,13 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.rs)",
       "WebSearch",
-      "WebFetch(domain:rust-lang.github.io)"
+      "WebFetch(domain:rust-lang.github.io)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== Run $i ===\")",
+      "Bash(timeout 3 cargo run:*)",
+      "Bash(done)",
+      "Bash(cargo run:*)",
+      "Bash(do echo \"=== Attempt $i ===\")"
     ]
   },
   "enableAllProjectMcpServers": true,
