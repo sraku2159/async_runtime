@@ -1,4 +1,7 @@
-use std::task::Poll;
+use std::task::{Poll, Waker};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 use async_runtime::Engine;
 use async_runtime::engine::block_on;
@@ -91,12 +94,17 @@ fn engine_with_many_workers() {
 
 struct DummyFuture {
     num: i32,
-    cnt: i32,
+    cnt: Arc<Mutex<i32>>,
+    waker: Arc<Mutex<Option<Waker>>>,
 }
 
 impl DummyFuture {
     fn new(num: i32) -> Self {
-        Self { num, cnt: 0 }
+        Self {
+            num,
+            cnt: Arc::new(Mutex::new(0)),
+            waker: Arc::new(Mutex::new(None)),
+        }
     }
 }
 
@@ -104,15 +112,27 @@ impl std::future::Future for DummyFuture {
     type Output = i32;
 
     fn poll(
-        mut self: std::pin::Pin<&mut Self>,
+        self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
-        if self.as_ref().cnt > self.as_ref().num {
-            Poll::Ready(self.as_ref().cnt)
+        let mut cnt = self.cnt.lock().unwrap();
+
+        if *cnt > self.num {
+            Poll::Ready(*cnt)
         } else {
-            self.as_mut().cnt += 1;
-            // Poll::Pendingを返す前にWakerを呼んで再スケジュールを要求
-            cx.waker().wake_by_ref();
+            *cnt += 1;
+            // Wakerを保存
+            *self.waker.lock().unwrap() = Some(cx.waker().clone());
+
+            // 別スレッドで少し待ってからWakerを呼ぶ（正しいパターン）
+            let waker_clone = Arc::clone(&self.waker);
+            thread::spawn(move || {
+                thread::sleep(Duration::from_millis(5));
+                if let Some(waker) = waker_clone.lock().unwrap().take() {
+                    waker.wake();
+                }
+            });
+
             Poll::Pending
         }
     }

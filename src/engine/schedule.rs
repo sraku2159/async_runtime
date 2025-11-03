@@ -19,6 +19,7 @@ pub trait Scheduler {
 
     // デフォルト実装：タスクをスケジュールし、通知
     fn schedule(&mut self, task: SharedTask) {
+        eprintln!("[Scheduler::schedule] Setting task state to SCHEDULED");
         task.set_state(crate::engine::task::SCHEDULED);
         self.register(task);
         self.notify();

@@ -11,6 +11,16 @@ pub const COMPLETED: u8 = 3;
 
 pub type SharedTask = Arc<Task>;
 
+fn state_name(state: u8) -> &'static str {
+    match state {
+        PENDING => "PENDING",
+        SCHEDULED => "SCHEDULED",
+        RUNNING => "RUNNING",
+        COMPLETED => "COMPLETED",
+        _ => "UNKNOWN",
+    }
+}
+
 pub struct Task {
     inner: Mutex<Pin<Box<dyn Future<Output = ()> + Send>>>,
     state: AtomicU8,
@@ -46,16 +56,50 @@ impl Task {
     }
 
     pub fn poll(&self, cx: &mut std::task::Context<'_>) -> Poll<()> {
-        self.state.store(RUNNING, Ordering::Release);
-        let mut inner = self.inner.lock().unwrap();
-        match inner.as_mut().poll(cx) {
-            Poll::Pending => {
-                self.state.store(PENDING, Ordering::Release);
-                Poll::Pending
+        // SCHEDULED -> RUNNING の遷移のみ許可
+        // これによりCOMPLETEDやRUNNING中のタスクがpollされるのを防ぐ
+        let before_state = self.state.load(Ordering::Acquire);
+        eprintln!("[Task::poll] Before: state={}", state_name(before_state));
+
+        match self.state.compare_exchange(
+            SCHEDULED,
+            RUNNING,
+            Ordering::Release,
+            Ordering::Acquire,
+        ) {
+            Ok(_) => {
+                eprintln!("[Task::poll] State transition: SCHEDULED -> RUNNING");
+                // 状態遷移成功、pollを実行
+                let mut inner = self.inner.lock().unwrap();
+                match inner.as_mut().poll(cx) {
+                    Poll::Pending => {
+                        eprintln!("[Task::poll] Future returned Pending");
+                        // RUNNING -> PENDING の遷移を試みる
+                        // もしwake()が既に呼ばれてSCHEDULEDになっていたら、そのまま
+                        match self.state.compare_exchange(
+                            RUNNING,
+                            PENDING,
+                            Ordering::Release,
+                            Ordering::Acquire,
+                        ) {
+                            Ok(_) => eprintln!("[Task::poll] State transition: RUNNING -> PENDING"),
+                            Err(actual) => eprintln!("[Task::poll] State transition failed: RUNNING -> PENDING (actual: {})", state_name(actual)),
+                        }
+                        Poll::Pending
+                    }
+                    Poll::Ready(v) => {
+                        eprintln!("[Task::poll] Future returned Ready");
+                        self.state.store(COMPLETED, Ordering::Release);
+                        eprintln!("[Task::poll] State transition: RUNNING -> COMPLETED");
+                        Poll::Ready(v)
+                    }
+                }
             }
-            Poll::Ready(v) => {
-                self.state.store(COMPLETED, Ordering::Release);
-                Poll::Ready(v)
+            Err(actual) => {
+                eprintln!("[Task::poll] State transition failed: SCHEDULED -> RUNNING (actual: {})", state_name(actual));
+                // 状態遷移失敗（既にRUNNINGかCOMPLETED）
+                // Pendingを返して何もしない
+                Poll::Pending
             }
         }
     }
