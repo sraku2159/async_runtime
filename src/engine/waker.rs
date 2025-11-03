@@ -30,7 +30,10 @@ where
 {
     fn wake(self: Arc<Self>) {
         eprintln!("called waker");
-        if self.task.get_state() == task::PENDING {
+        let state = self.task.get_state();
+        // RUNNING状態でもwakeを許可（poll()内でwake_by_ref()が呼ばれた場合）
+        // PENDING状態でもwakeを許可（poll()が既に終わった後にwakeが呼ばれた場合）
+        if state == task::PENDING || state == task::RUNNING {
             self.scheduler
                 .lock()
                 .unwrap()
