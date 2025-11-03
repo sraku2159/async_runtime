@@ -46,6 +46,7 @@ impl Task {
     }
 
     pub fn poll(&self, cx: &mut std::task::Context<'_>) -> Poll<()> {
+        self.state.store(RUNNING, Ordering::Release);
         let mut inner = self.inner.lock().unwrap();
         match inner.as_mut().poll(cx) {
             Poll::Pending => {

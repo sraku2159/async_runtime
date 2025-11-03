@@ -29,11 +29,13 @@ where
     T: Scheduler,
 {
     fn wake(self: Arc<Self>) {
+        eprintln!("called waker");
         if self.task.get_state() == task::PENDING {
             self.scheduler
                 .lock()
                 .unwrap()
                 .schedule(Arc::clone(&self.task));
+            eprintln!("task reshceduled!!");
         }
     }
 }

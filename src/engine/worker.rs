@@ -56,6 +56,8 @@ impl Worker {
                 let waker = task::Waker::from(Arc::new(waker));
                 let mut context = Context::from_waker(&waker);
                 let _ = task.poll(&mut context);
+                // Poll::Pendingが返された場合、Wakerが呼ばれるまで待つ
+                // （Wakerが呼ばれると自動的に再スケジュールされる）
             }
         }
     }

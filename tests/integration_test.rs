@@ -1,3 +1,5 @@
+use std::task::Poll;
+
 use async_runtime::Engine;
 use async_runtime::engine::block_on;
 use async_runtime::engine::schedule::fifo::Fifo;
@@ -83,6 +85,65 @@ fn engine_with_many_workers() {
     for (i, receiver) in receivers.into_iter().enumerate() {
         assert_eq!(block_on(receiver), i * 2);
     }
+
+    engine.graceful_shutdown();
+}
+
+struct DummyFuture {
+    num: i32,
+    cnt: i32,
+}
+
+impl DummyFuture {
+    fn new(num: i32) -> Self {
+        Self { num, cnt: 0 }
+    }
+}
+
+impl std::future::Future for DummyFuture {
+    type Output = i32;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        if self.as_ref().cnt > self.as_ref().num {
+            Poll::Ready(self.as_ref().cnt)
+        } else {
+            self.as_mut().cnt += 1;
+            // Poll::Pendingを返す前にWakerを呼んで再スケジュールを要求
+            cx.waker().wake_by_ref();
+            Poll::Pending
+        }
+    }
+}
+
+#[test]
+fn engine_handles_pending_future() {
+    let mut engine = Engine::new(2, |receiver| Box::new(Fifo::new(receiver)));
+
+    // DummyFuture::new(3) は cnt > 3 になるまでPoll::Pendingを返す
+    // poll: cnt=0->1 (Pending), cnt=1->2 (Pending), cnt=2->3 (Pending), cnt=3->4 (Ready(4))
+    let receiver = engine.reserve(DummyFuture::new(3));
+
+    let result = block_on(receiver);
+    assert_eq!(result, 4);
+
+    engine.graceful_shutdown();
+}
+
+#[test]
+fn engine_handles_multiple_pending_futures() {
+    let mut engine = Engine::new(4, |receiver| Box::new(Fifo::new(receiver)));
+
+    // 異なる回数のPoll::Pendingを返すFutureを複数実行
+    let r1 = engine.reserve(DummyFuture::new(2)); // 2回Pending後、Ready(3)
+    let r2 = engine.reserve(DummyFuture::new(4)); // 4回Pending後、Ready(5)
+    let r3 = engine.reserve(DummyFuture::new(1)); // 1回Pending後、Ready(2)
+
+    assert_eq!(block_on(r1), 3);
+    assert_eq!(block_on(r2), 5);
+    assert_eq!(block_on(r3), 2);
 
     engine.graceful_shutdown();
 }

@@ -44,6 +44,7 @@ where
         let mut context = self.context.lock().unwrap();
         context.set_state(InnerState::Ready);
         if let Some(waker) = context.waker.take() {
+            eprintln!("[Sender] Calling waker to wake up receiver!");
             waker.wake();
         }
     }

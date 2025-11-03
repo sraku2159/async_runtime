@@ -99,6 +99,7 @@ pub fn block_on<T, F: IntoFuture<Output = T>>(future: F) -> T {
 
     impl Wake for Waker {
         fn wake(self: std::sync::Arc<Self>) {
+            eprintln!("waker in block_on is called");
             self.t.unpark();
         }
     }
