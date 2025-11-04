@@ -1,3 +1,4 @@
+pub mod deadline;
 pub mod fifo;
 use crate::engine::task::SharedTask;
 use crate::engine::worker::WorkerInfo;
