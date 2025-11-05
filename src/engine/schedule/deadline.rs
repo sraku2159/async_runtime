@@ -1,15 +1,46 @@
-use std::fmt::Debug;
+use std::{collections::VecDeque, sync::mpsc::Receiver};
 
-use crate::engine::task::Task;
+use crate::engine::{schedule::Scheduler, task::SharedTask, worker::WorkerInfo};
 
-pub struct DeadLineScheduler {}
-// TODO: どうやってデッドラインを設定するか考える
+pub struct DeadLineScheduler {
+    receiver: Receiver<WorkerInfo>,
+    pending_workers: VecDeque<WorkerInfo>,
+    heap: Heap<SharedTask>,
+}
+
+impl DeadLineScheduler {
+    pub fn new(receiver: Receiver<WorkerInfo>) -> Self {
+        Self {
+            receiver,
+            pending_workers: VecDeque::new(),
+            heap: Heap::new(),
+        }
+    }
+}
+
+impl Scheduler for DeadLineScheduler {
+    fn register(&mut self, task: SharedTask) {
+        self.heap.insert(task);
+    }
+
+    fn take(&mut self) -> Option<SharedTask> {
+        self.heap.delete()
+    }
+
+    fn get_pending_workers(&mut self) -> &mut VecDeque<WorkerInfo> {
+        &mut self.pending_workers
+    }
+
+    fn get_worker_receiver(&mut self) -> &mut Receiver<WorkerInfo> {
+        &mut self.receiver
+    }
+}
 
 struct Heap<T: PartialOrd>(Vec<T>);
 
 impl<T> Heap<T>
 where
-    T: PartialOrd + Debug,
+    T: PartialOrd,
 {
     fn new() -> Self {
         Heap(Vec::new())
@@ -72,32 +103,6 @@ where
             idx = child;
             child_base = child * 2;
         }
-    }
-}
-
-struct TaskWithDeadLine {
-    task: Task,
-    deadline: u64,
-}
-
-impl TaskWithDeadLine {
-    pub fn new(task: Task, deadline: u64) -> Self {
-        Self {
-            task: task,
-            deadline: deadline,
-        }
-    }
-}
-
-impl PartialEq for TaskWithDeadLine {
-    fn eq(&self, other: &Self) -> bool {
-        self.deadline == other.deadline
-    }
-}
-
-impl PartialOrd for TaskWithDeadLine {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.deadline.partial_cmp(&other.deadline)
     }
 }
 

@@ -15,7 +15,7 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(10));
         println!("  [Inner task] Returning result");
         42
-    });
+    }, None);
 
     println!("Creating outer task that awaits inner task...");
     let outer_task = engine.reserve(async move {
@@ -27,7 +27,7 @@ fn main() {
         println!("  [Outer task] Inner task completed with result: {}", result);
         println!("  [Outer task] Waker was called to wake us up!");
         result * 2
-    });
+    }, None);
 
     println!("\nMain thread: Waiting for outer task...");
     let final_result = block_on(outer_task);

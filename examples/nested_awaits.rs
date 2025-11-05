@@ -12,7 +12,7 @@ fn main() {
     let level1 = engine.reserve(async {
         println!("[Level 1] Starting...");
         42
-    });
+    }, None);
 
     // Level 2: Await level 1
     let level2 = engine.reserve(async move {
@@ -20,7 +20,7 @@ fn main() {
         let result1 = block_on(level1);
         println!("[Level 2] Got from level 1: {}", result1);
         result1 + 10
-    });
+    }, None);
 
     // Level 3: Await level 2
     let level3 = engine.reserve(async move {
@@ -28,7 +28,7 @@ fn main() {
         let result2 = block_on(level2);
         println!("[Level 3] Got from level 2: {}", result2);
         result2 * 2
-    });
+    }, None);
 
     // Level 4: Await level 3
     let level4 = engine.reserve(async move {
@@ -36,7 +36,7 @@ fn main() {
         let result3 = block_on(level3);
         println!("[Level 4] Got from level 3: {}", result3);
         result3 + 100
-    });
+    }, None);
 
     // Level 5: Multiple awaits in sequence
     let level5 = engine.reserve(async move {
@@ -59,7 +59,7 @@ fn main() {
         println!("[Level 5] Got from level 4: {}", result4);
 
         result4 + a + b + c
-    });
+    }, None);
 
     // Parallel branch 1
     let branch1 = engine.reserve(async {
@@ -75,7 +75,7 @@ fn main() {
 
         println!("[Branch 1] Computed: {} + {} + {} = {}", x, y, z, x + y + z);
         x + y + z
-    });
+    }, None);
 
     // Parallel branch 2
     let branch2 = engine.reserve(async {
@@ -91,7 +91,7 @@ fn main() {
 
         println!("[Branch 2] Computed: {} + {} + {} = {}", x, y, z, x + y + z);
         x + y + z
-    });
+    }, None);
 
     // Final level: Await everything
     let final_result = engine.reserve(async move {
@@ -117,7 +117,7 @@ fn main() {
         println!("[Final] Bonus computation: {}", bonus_result);
 
         main_result + b1 + b2 + bonus_result
-    });
+    }, None);
 
     println!("\nWaiting for final result...\n");
     let result = block_on(final_result);

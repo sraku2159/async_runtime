@@ -18,7 +18,7 @@ fn main() {
         thread::sleep(Duration::from_secs(1));
         println!("  Task returning value 42");
         42
-    });
+    }, None);
 
     println!("Main thread: calling block_on(receiver)...");
     println!("Main thread: receiver will return Pending first, then sender will wake it up\n");

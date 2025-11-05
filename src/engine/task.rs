@@ -24,10 +24,11 @@ fn state_name(state: u8) -> &'static str {
 pub struct Task {
     inner: Mutex<Pin<Box<dyn Future<Output = ()> + Send>>>,
     state: AtomicU8,
+    deadline: Option<u64>,
 }
 
 impl Task {
-    pub fn new<T, U>(inner: T, sender: Sender<U>) -> SharedTask
+    pub fn new<T, U>(inner: T, sender: Sender<U>, deadline: Option<u64>) -> SharedTask
     where
         T: Future<Output = U> + Send + 'static,
         U: Clone + Unpin + Send + 'static,
@@ -40,6 +41,7 @@ impl Task {
         Arc::new(Self {
             inner: Mutex::new(Box::pin(task)),
             state: AtomicU8::new(PENDING),
+            deadline,
         })
     }
 
@@ -61,12 +63,10 @@ impl Task {
         let before_state = self.state.load(Ordering::Acquire);
         eprintln!("[Task::poll] Before: state={}", state_name(before_state));
 
-        match self.state.compare_exchange(
-            SCHEDULED,
-            RUNNING,
-            Ordering::Release,
-            Ordering::Acquire,
-        ) {
+        match self
+            .state
+            .compare_exchange(SCHEDULED, RUNNING, Ordering::Release, Ordering::Acquire)
+        {
             Ok(_) => {
                 eprintln!("[Task::poll] State transition: SCHEDULED -> RUNNING");
                 // 状態遷移成功、pollを実行
@@ -83,7 +83,10 @@ impl Task {
                             Ordering::Acquire,
                         ) {
                             Ok(_) => eprintln!("[Task::poll] State transition: RUNNING -> PENDING"),
-                            Err(actual) => eprintln!("[Task::poll] State transition failed: RUNNING -> PENDING (actual: {})", state_name(actual)),
+                            Err(actual) => eprintln!(
+                                "[Task::poll] State transition failed: RUNNING -> PENDING (actual: {})",
+                                state_name(actual)
+                            ),
                         }
                         Poll::Pending
                     }
@@ -96,11 +99,26 @@ impl Task {
                 }
             }
             Err(actual) => {
-                eprintln!("[Task::poll] State transition failed: SCHEDULED -> RUNNING (actual: {})", state_name(actual));
+                eprintln!(
+                    "[Task::poll] State transition failed: SCHEDULED -> RUNNING (actual: {})",
+                    state_name(actual)
+                );
                 // 状態遷移失敗（既にRUNNINGかCOMPLETED）
                 // Pendingを返して何もしない
                 Poll::Pending
             }
         }
+    }
+}
+
+impl PartialEq for Task {
+    fn eq(&self, other: &Self) -> bool {
+        self.deadline == other.deadline
+    }
+}
+
+impl PartialOrd for Task {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.deadline.partial_cmp(&other.deadline)
     }
 }

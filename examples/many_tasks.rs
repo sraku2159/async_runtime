@@ -23,7 +23,7 @@ fn main() {
                 println!("  Task {} completed: {} * {} = {}", i, i, i, result);
             }
             result
-        });
+        }, None);
         receivers.push((i, receiver));
     }
 

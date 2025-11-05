@@ -1,6 +1,6 @@
-use async_runtime::engine::schedule::fifo::Fifo;
-use async_runtime::engine::block_on;
 use async_runtime::Engine;
+use async_runtime::engine::block_on;
+use async_runtime::engine::schedule::fifo::Fifo;
 
 fn main() {
     println!("=== Different Return Types Example ===\n");
@@ -11,27 +11,27 @@ fn main() {
 
     // Integer
     println!("1. Integer task");
-    let r_int = engine.reserve(async { 42 });
+    let r_int = engine.reserve(async { 42 }, None);
 
     // String
     println!("2. String task");
-    let r_string = engine.reserve(async { "Async is awesome!".to_string() });
+    let r_string = engine.reserve(async { "Async is awesome!".to_string() }, None);
 
     // Boolean
     println!("3. Boolean task");
-    let r_bool = engine.reserve(async { true });
+    let r_bool = engine.reserve(async { true }, None);
 
     // Float
     println!("4. Float task");
-    let r_float = engine.reserve(async { 3.14159 });
+    let r_float = engine.reserve(async { 3.14159 }, None);
 
     // Tuple
     println!("5. Tuple task");
-    let r_tuple = engine.reserve(async { (1, "two".to_string(), 3.0) });
+    let r_tuple = engine.reserve(async { (1, "two".to_string(), 3.0) }, None);
 
     // Vec
     println!("6. Vector task");
-    let r_vec = engine.reserve(async { vec![1, 2, 3, 4, 5] });
+    let r_vec = engine.reserve(async { vec![1, 2, 3, 4, 5] }, None);
 
     println!("\nResults:");
     println!("  Integer: {}", block_on(r_int));

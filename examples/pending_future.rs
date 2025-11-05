@@ -1,7 +1,7 @@
-use std::pin::Pin;
-use std::task::{Context, Poll, Waker};
 use std::future::Future;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll, Waker};
 use std::thread;
 use std::time::Duration;
 
@@ -21,7 +21,10 @@ struct CountingFuture {
 
 impl CountingFuture {
     fn new(max_polls: usize, value: i32) -> Self {
-        println!("Creating CountingFuture: will poll {} times before returning {}", max_polls, value);
+        println!(
+            "Creating CountingFuture: will poll {} times before returning {}",
+            max_polls, value
+        );
         Self {
             cnt: Arc::new(Mutex::new(0)),
             max_polls,
@@ -34,11 +37,14 @@ impl CountingFuture {
 impl Future for CountingFuture {
     type Output = i32;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut cnt = self.cnt.lock().unwrap();
         *cnt += 1;
         let current_cnt = *cnt;
-        println!("  CountingFuture poll attempt #{} (max: {})", current_cnt, self.max_polls);
+        println!(
+            "  CountingFuture poll attempt #{} (max: {})",
+            current_cnt, self.max_polls
+        );
 
         if current_cnt >= self.max_polls {
             println!("  -> Ready! Returning {}", self.value);
@@ -68,13 +74,13 @@ fn main() {
     let mut engine = Engine::new(2, |receiver| Box::new(Fifo::new(receiver)));
 
     println!("Submitting task 1: CountingFuture(3 polls, value=100)");
-    let r1 = engine.reserve(CountingFuture::new(3, 100));
+    let r1 = engine.reserve(CountingFuture::new(3, 100), None);
 
     println!("\nSubmitting task 2: CountingFuture(5 polls, value=200)");
-    let r2 = engine.reserve(CountingFuture::new(5, 200));
+    let r2 = engine.reserve(CountingFuture::new(5, 200), None);
 
     println!("\nSubmitting task 3: CountingFuture(2 polls, value=300)");
-    let r3 = engine.reserve(CountingFuture::new(2, 300));
+    let r3 = engine.reserve(CountingFuture::new(2, 300), None);
 
     println!("\n--- Waiting for results ---\n");
 

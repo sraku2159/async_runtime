@@ -25,9 +25,9 @@ impl Future for DummyTask {
 #[test]
 fn take_task_one_by_one() {
     let (sender, _) = channel();
-    let task1 = Task::new(DummyTask {}, sender);
+    let task1 = Task::new(DummyTask {}, sender, None);
     let (sender, _) = channel();
-    let task2 = Task::new(DummyTask {}, sender);
+    let task2 = Task::new(DummyTask {}, sender, None);
 
     let (worker_sender, worker_receiver) = std::sync::mpsc::channel();
     let mut scheduler = Fifo::new(worker_receiver);

@@ -1,7 +1,7 @@
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use std::future::Future;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -64,26 +64,35 @@ fn main() {
         let mut engine = Engine::new(2, |receiver| Box::new(Fifo::new(receiver)));
 
         println!("Submitting 3 tasks that sleep 100ms each (BLOCKING)");
-        let r1 = engine.reserve(async {
-            println!("  Task 1 starting... (will BLOCK worker)");
-            std::thread::sleep(Duration::from_millis(100));
-            println!("  Task 1 done!");
-            1
-        });
+        let r1 = engine.reserve(
+            async {
+                println!("  Task 1 starting... (will BLOCK worker)");
+                std::thread::sleep(Duration::from_millis(100));
+                println!("  Task 1 done!");
+                1
+            },
+            None,
+        );
 
-        let r2 = engine.reserve(async {
-            println!("  Task 2 starting... (will BLOCK worker)");
-            std::thread::sleep(Duration::from_millis(100));
-            println!("  Task 2 done!");
-            2
-        });
+        let r2 = engine.reserve(
+            async {
+                println!("  Task 2 starting... (will BLOCK worker)");
+                std::thread::sleep(Duration::from_millis(100));
+                println!("  Task 2 done!");
+                2
+            },
+            None,
+        );
 
-        let r3 = engine.reserve(async {
-            println!("  Task 3 starting... (will BLOCK worker)");
-            std::thread::sleep(Duration::from_millis(100));
-            println!("  Task 3 done!");
-            3
-        });
+        let r3 = engine.reserve(
+            async {
+                println!("  Task 3 starting... (will BLOCK worker)");
+                std::thread::sleep(Duration::from_millis(100));
+                println!("  Task 3 done!");
+                3
+            },
+            None,
+        );
 
         block_on(r1);
         block_on(r2);
@@ -102,26 +111,35 @@ fn main() {
         let mut engine = Engine::new(2, |receiver| Box::new(Fifo::new(receiver)));
 
         println!("Submitting 3 tasks that sleep 100ms each (NON-BLOCKING)");
-        let r1 = engine.reserve(async {
-            println!("  Task 1 starting... (non-blocking)");
-            NonBlockingSleep::new(Duration::from_millis(100)).await;
-            println!("  Task 1 done!");
-            1
-        });
+        let r1 = engine.reserve(
+            async {
+                println!("  Task 1 starting... (non-blocking)");
+                NonBlockingSleep::new(Duration::from_millis(100)).await;
+                println!("  Task 1 done!");
+                1
+            },
+            None,
+        );
 
-        let r2 = engine.reserve(async {
-            println!("  Task 2 starting... (non-blocking)");
-            NonBlockingSleep::new(Duration::from_millis(100)).await;
-            println!("  Task 2 done!");
-            2
-        });
+        let r2 = engine.reserve(
+            async {
+                println!("  Task 2 starting... (non-blocking)");
+                NonBlockingSleep::new(Duration::from_millis(100)).await;
+                println!("  Task 2 done!");
+                2
+            },
+            None,
+        );
 
-        let r3 = engine.reserve(async {
-            println!("  Task 3 starting... (non-blocking)");
-            NonBlockingSleep::new(Duration::from_millis(100)).await;
-            println!("  Task 3 done!");
-            3
-        });
+        let r3 = engine.reserve(
+            async {
+                println!("  Task 3 starting... (non-blocking)");
+                NonBlockingSleep::new(Duration::from_millis(100)).await;
+                println!("  Task 3 done!");
+                3
+            },
+            None,
+        );
 
         block_on(r1);
         block_on(r2);
@@ -135,7 +153,12 @@ fn main() {
 
     println!("=== Summary ===");
     println!("Blocking:     {:?} (tasks waited in queue)", blocking_time);
-    println!("Non-blocking: {:?} (tasks ran concurrently)", nonblocking_time);
-    println!("\nSpeed improvement: {:.1}x faster!",
-             blocking_time.as_secs_f64() / nonblocking_time.as_secs_f64());
+    println!(
+        "Non-blocking: {:?} (tasks ran concurrently)",
+        nonblocking_time
+    );
+    println!(
+        "\nSpeed improvement: {:.1}x faster!",
+        blocking_time.as_secs_f64() / nonblocking_time.as_secs_f64()
+    );
 }

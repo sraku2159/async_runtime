@@ -78,13 +78,13 @@ fn main() {
     let mut engine = Engine::new(2, |receiver| Box::new(Fifo::new(receiver)));
 
     println!("Submitting task 1: AsyncWakerFuture(100ms delay, value=100)");
-    let r1 = engine.reserve(AsyncWakerFuture::new(100, 100));
+    let r1 = engine.reserve(AsyncWakerFuture::new(100, 100), None);
 
     println!("\nSubmitting task 2: AsyncWakerFuture(200ms delay, value=200)");
-    let r2 = engine.reserve(AsyncWakerFuture::new(200, 200));
+    let r2 = engine.reserve(AsyncWakerFuture::new(200, 200), None);
 
     println!("\nSubmitting task 3: AsyncWakerFuture(50ms delay, value=300)");
-    let r3 = engine.reserve(AsyncWakerFuture::new(50, 300));
+    let r3 = engine.reserve(AsyncWakerFuture::new(50, 300), None);
 
     println!("\n--- Waiting for results ---\n");
 

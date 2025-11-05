@@ -62,13 +62,13 @@ impl Engine {
         }
     }
 
-    pub fn reserve<V, W>(&mut self, task: V) -> Receiver<W>
+    pub fn reserve<V, W>(&mut self, task: V, deadline: Option<u64>) -> Receiver<W>
     where
         V: Future<Output = W> + Send + 'static,
         W: Clone + Send + Unpin + 'static,
     {
         let (sender, receiver) = channel();
-        let task = Task::new(task, sender);
+        let task = Task::new(task, sender, deadline);
         self.scheduler.lock().unwrap().schedule(task);
         receiver
     }

@@ -50,11 +50,15 @@ impl Scheduler for DummyScheduler {
         self.tasks.pop()
     }
 
-    fn get_pending_workers(&mut self) -> &mut std::collections::VecDeque<crate::engine::worker::WorkerInfo> {
+    fn get_pending_workers(
+        &mut self,
+    ) -> &mut std::collections::VecDeque<crate::engine::worker::WorkerInfo> {
         &mut self.pending_workers
     }
 
-    fn get_worker_receiver(&mut self) -> &mut std::sync::mpsc::Receiver<crate::engine::worker::WorkerInfo> {
+    fn get_worker_receiver(
+        &mut self,
+    ) -> &mut std::sync::mpsc::Receiver<crate::engine::worker::WorkerInfo> {
         &mut self.worker_receiver
     }
 }
@@ -62,7 +66,7 @@ impl Scheduler for DummyScheduler {
 fn test_waker_schedule_count(task_state: u8, expected_count: usize) {
     let scheduler = Arc::new(Mutex::new(DummyScheduler::new()));
     let (sender, _) = crate::utils::channel::channel();
-    let task = Task::new(DummyFuture {}, sender);
+    let task = Task::new(DummyFuture {}, sender, None);
     task.set_state(task_state);
     let waker = Arc::new(Waker::new(scheduler.clone(), task));
 

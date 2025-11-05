@@ -12,28 +12,37 @@ fn main() {
 
     // Simple computation
     println!("Running simple computation...");
-    let r1 = engine.reserve(async {
-        println!("  [Task 1] Computing 5 + 3");
-        5 + 3
-    });
+    let r1 = engine.reserve(
+        async {
+            println!("  [Task 1] Computing 5 + 3");
+            5 + 3
+        },
+        None,
+    );
 
     // String processing
     println!("Running string task...");
-    let r2 = engine.reserve(async {
-        println!("  [Task 2] Creating greeting");
-        "Hello from async runtime!".to_string()
-    });
+    let r2 = engine.reserve(
+        async {
+            println!("  [Task 2] Creating greeting");
+            "Hello from async runtime!".to_string()
+        },
+        None,
+    );
 
     // More complex computation
     println!("Running complex computation...");
-    let r3 = engine.reserve(async {
-        println!("  [Task 3] Computing factorial of 5");
-        let mut result = 1;
-        for i in 1..=5 {
-            result *= i;
-        }
-        result
-    });
+    let r3 = engine.reserve(
+        async {
+            println!("  [Task 3] Computing factorial of 5");
+            let mut result = 1;
+            for i in 1..=5 {
+                result *= i;
+            }
+            result
+        },
+        None,
+    );
 
     // Collect results
     println!("\nCollecting results:");
